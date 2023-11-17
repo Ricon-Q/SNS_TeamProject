@@ -2,14 +2,29 @@
 #include <windows.h>
 #include <tchar.h>
 #include <stdio.h>
+#include <mutex>
 #include "resource.h"
 
-#define BUFSIZE 25
+std::mutex mtx;
+
+HANDLE hMutex;
+
+
+#define BUFSIZE 2
+
+HANDLE hWriteEvent;
+HANDLE hReadEvent;
+int buf[BUFSIZE];
 
 // 대화상자 프로시저
 INT_PTR CALLBACK DlgProc(HWND, UINT, WPARAM, LPARAM);
 // 에디트 컨트롤 출력 함수
 void DisplayText(const char* fmt, ...);
+DWORD WINAPI WriteThread(LPVOID arg);
+DWORD WINAPI ReadThread(LPVOID arg);
+void Thread();
+
+
 
 HWND hEdit1, hEdit2; // 에디트 컨트롤
 
@@ -21,26 +36,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	return 0;
 }
 
-HWND hDlg;
-
 // 대화상자 프로시저
-INT_PTR CALLBACK DlgProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static char buf[BUFSIZE + 1];
 	switch (uMsg) {
 	case WM_INITDIALOG:
-		hDlg = hwndDlg;
 		hEdit1 = GetDlgItem(hDlg, IDC_EDIT1);
 		hEdit2 = GetDlgItem(hDlg, IDC_EDIT2);
 		SendMessage(hEdit1, EM_SETLIMITTEXT, BUFSIZE, 0);
+
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case IDOK:
-			GetDlgItemTextA(hDlg, IDC_EDIT1, buf, BUFSIZE + 1);
-			DisplayText("%s\r\n", buf);
-			SetFocus(hEdit1);
-			SendMessage(hEdit1, EM_SETSEL, 0, -1);
+			// GetDlgItemTextA(hDlg, IDC_EDIT1, buf, BUFSIZE + 1);
+			// DisplayText("%s\r\n", buf);
+			// SetFocus(hEdit1);
+			// SendMessage(hEdit1, EM_SETSEL, 0, -1);
+
+			Thread();
+			DisplayText("Thread Done\n");
+
 			return TRUE;
 		case IDCANCEL:
 			EndDialog(hDlg, IDCANCEL);
@@ -65,24 +82,18 @@ void DisplayText(const char* fmt, ...)
 	SendMessageA(hEdit2, EM_REPLACESEL, FALSE, (LPARAM)cbuf);
 }
 
-
-HANDLE hWriteEvent;
-HANDLE hReadEvent;
-int buf[BUFSIZE];
-
 DWORD WINAPI WriteThread(LPVOID arg)
 {
 	DWORD retval;
-	for (int k = 1; k <= 500; k++) {
-		// 읽기 완료 대기
+	for (int k = 1; k <= 50; k++) {
 		retval = WaitForSingleObject(hReadEvent, INFINITE);
 		if (retval != WAIT_OBJECT_0) break;
 
-		// 공유 버퍼에 데이터 저장
+		WaitForSingleObject(hMutex, INFINITE);
 		for (int i = 0; i < BUFSIZE; i++)
 			buf[i] = k;
+		ReleaseMutex(hMutex);
 
-		// 쓰기 완료 알림
 		SetEvent(hWriteEvent);
 	}
 	return 0;
@@ -92,49 +103,35 @@ DWORD WINAPI ReadThread(LPVOID arg)
 {
 	DWORD retval;
 	while (1) {
-		// 쓰기 완료 대기
 		retval = WaitForSingleObject(hWriteEvent, INFINITE);
 		if (retval != WAIT_OBJECT_0) break;
 
-		// Format the string
-		char output[BUFSIZE * 2];
-		sprintf(output, "Thread %4d:\t", GetCurrentThreadId());
-		for (int i = 0; i < BUFSIZE; i++) {
-			char buf[BUFSIZE];
-			sprintf(buf, "%3d ", buf[i]);
-			strcat(output, buf);
-		}
-		strcat(output, "\n");
+		WaitForSingleObject(hMutex, INFINITE);
+		memset(buf, 0, sizeof(buf));
+		ReleaseMutex(hMutex);
 
-		// 에디트 컨트롤에 출력
-		DisplayText("%s", output);
-
-		// 읽기 완료 알림
 		SetEvent(hReadEvent);
 	}
 	return 0;
 }
 
-int main(int argc, char* argv[])
+void Thread()
 {
-	// 이벤트 생성
 	hWriteEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	hReadEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	hMutex = CreateMutex(NULL, FALSE, NULL);
 
-	// 스레드 세 개 생성
 	HANDLE hThread[3];
 	hThread[0] = CreateThread(NULL, 0, WriteThread, NULL, 0, NULL);
 	hThread[1] = CreateThread(NULL, 0, ReadThread, NULL, 0, NULL);
 	hThread[2] = CreateThread(NULL, 0, ReadThread, NULL, 0, NULL);
 
-	// 읽기 완료 알림
 	SetEvent(hReadEvent);
 
-	// 스레드 세 개 종료 대기
 	WaitForMultipleObjects(3, hThread, TRUE, INFINITE);
 
-	// 이벤트 제거
 	CloseHandle(hWriteEvent);
 	CloseHandle(hReadEvent);
-	return 0;
+	CloseHandle(hMutex);
+	return;
 }

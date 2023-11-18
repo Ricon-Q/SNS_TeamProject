@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// ÇÑ±¹¾î(´ëÇÑ¹Î±¹) resources
+// í•œêµ­ì–´(ëŒ€í•œë¯¼êµ­) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
 LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
@@ -50,15 +50,15 @@ END
 // Dialog
 //
 
-IDD_DIALOG1 DIALOGEX 0, 0, 323, 112
+IDD_DIALOG1 DIALOGEX 0, 0, 391, 316
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Dialog"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    EDITTEXT        IDC_EDIT1,7,7,252,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT2,7,26,252,79,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
-    DEFPUSHBUTTON   "È®ÀÎ",IDOK,266,7,50,14
-    PUSHBUTTON      "Ãë¼Ò",IDCANCEL,266,26,50,14
+    EDITTEXT        IDC_EDIT1,7,7,321,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT2,7,30,322,279,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL | WS_HSCROLL
+    DEFPUSHBUTTON   "È®ÀÎ",IDOK,334,7,50,14
+    PUSHBUTTON      "Ãë¼Ò",IDCANCEL,334,31,50,14
 END
 
 
@@ -73,9 +73,9 @@ BEGIN
     IDD_DIALOG1, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 316
+        RIGHTMARGIN, 384
         TOPMARGIN, 7
-        BOTTOMMARGIN, 105
+        BOTTOMMARGIN, 309
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -91,7 +91,7 @@ BEGIN
     0
 END
 
-#endif    // ÇÑ±¹¾î(´ëÇÑ¹Î±¹) resources
+#endif    // í•œêµ­ì–´(ëŒ€í•œë¯¼êµ­) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

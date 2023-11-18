@@ -25,14 +25,24 @@ DWORD WINAPI ReadThread(LPVOID arg);
 void Thread();
 
 
-
 HWND hEdit1, hEdit2; // 에디트 컨트롤
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	LPSTR lpCmdLine, int nCmdShow)
 {
 	// 대화상자 생성
+	hReadEvent = CreateEvent(NULL, FALSE, TRUE, NULL);
+	hWriteEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+
+
+	HANDLE hThread[3];
+	hThread[0] = CreateThread(NULL, 0, WriteThread, NULL, 0, NULL);
+	hThread[1] = CreateThread(NULL, 0, ReadThread, NULL, 0, NULL);
+	hThread[2] = CreateThread(NULL, 0, ReadThread, NULL, 0, NULL);
+
 	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DlgProc);
+
 	return 0;
 }
 
@@ -46,18 +56,13 @@ INT_PTR CALLBACK DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		hEdit2 = GetDlgItem(hDlg, IDC_EDIT2);
 		SendMessage(hEdit1, EM_SETLIMITTEXT, BUFSIZE, 0);
 
+		DisplayText("Start\n");
+
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case IDOK:
-			// GetDlgItemTextA(hDlg, IDC_EDIT1, buf, BUFSIZE + 1);
-			// DisplayText("%s\r\n", buf);
-			// SetFocus(hEdit1);
-			// SendMessage(hEdit1, EM_SETSEL, 0, -1);
-
 			Thread();
-			DisplayText("Thread Done\n");
-
 			return TRUE;
 		case IDCANCEL:
 			EndDialog(hDlg, IDCANCEL);
@@ -73,7 +78,13 @@ void DisplayText(const char* fmt, ...)
 {
 	va_list arg;
 	va_start(arg, fmt);
-	char cbuf[BUFSIZE * 2];
+
+	int size = vsnprintf(NULL, 0, fmt, arg);
+	va_end(arg);
+	va_start(arg, fmt);
+
+
+	char* cbuf = new char[size + 1];
 	vsprintf(cbuf, fmt, arg);
 	va_end(arg);
 
@@ -106,7 +117,10 @@ DWORD WINAPI ReadThread(LPVOID arg)
 		retval = WaitForSingleObject(hWriteEvent, INFINITE);
 		if (retval != WAIT_OBJECT_0) break;
 
-		WaitForSingleObject(hMutex, INFINITE);
+		DisplayText("Thread %4d:\t", GetCurrentThreadId());
+		for (int i = 0; i < BUFSIZE; i++)
+			DisplayText("%3d ", buf[i]);
+		DisplayText("\n");
 		memset(buf, 0, sizeof(buf));
 		ReleaseMutex(hMutex);
 
@@ -114,7 +128,6 @@ DWORD WINAPI ReadThread(LPVOID arg)
 	}
 	return 0;
 }
-
 void Thread()
 {
 	hWriteEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
